@@ -1,24 +1,32 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Response, status, Request
 from typing import List, Dict
-from app.models import Base
-from app.schemas import TaskSet, TaskSchema
-from app.database import get_session, engine
-from app.crud import make_item, update_item, delete_item, get_item, get_items
+from models import Base
+from schemas import TaskSet, TaskSchema
+from database import get_session, engine
+from crud import make_item, update_item, delete_item, get_item, get_items
+from contextlib import asynccontextmanager
 
 
 app = FastAPI()
 
+ml_models = {}
 
-@app.on_event("startup")
-async def startup_event():
+async def run_database():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    ml_models["run_databases"] = run_database
+    yield
+    ml_models.clear()
 
-@app.post('/todos/create_task', response_model=TaskSchema)
-async def create_task(task: TaskSet, db: AsyncSession = Depends(get_session)) -> TaskSchema:
+
+@app.post('/todos/create_task/', response_model=TaskSchema)
+async def create_task(response: Response, task: TaskSet, db: AsyncSession = Depends(get_session)) -> TaskSchema:
     task_created = await make_item(db, task)
+    response.status_code = status.HTTP_201_CREATED
     return task_created
 
 

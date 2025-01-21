@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.models import Task
-from app.schemas import TaskSet
+from models import Task
+from schemas import TaskSet
 from fastapi import HTTPException, status
 
 
@@ -22,11 +22,8 @@ async def get_items(db: AsyncSession):
 
 
 async def get_item(db: AsyncSession, item_id: int):
-    try:
-        result = await db.execute(select(Task).filter(Task.id == item_id))
-        return result.scalar_one_or_none()
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT, detail=e)
+    result = await db.execute(select(Task).filter(Task.id == item_id))
+    return result.scalar_one_or_none()
 
 
 async def update_item(db: AsyncSession, item_id: int, item: TaskSet):
